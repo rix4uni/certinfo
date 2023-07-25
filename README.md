@@ -4,7 +4,7 @@ This tool finds certificate information
 
 ## Installation
 ```
-go install github.com/rix4uni/certingo@latest
+go install github.com/rix4uni/certinfo@latest
 ```
 
 # Usage
