@@ -1,5 +1,12 @@
 # certinfo
 
+This tool finds certificate information
+
+## Installation
+```
+go install github.com/rix4uni/certingo@latest
+```
+
 # Usage
 ```
 echo "104.98.132.228" | go run main.go
