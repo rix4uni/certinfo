@@ -9,8 +9,8 @@ go install github.com/rix4uni/certinfo@latest
 
 # Usage
 ```
-echo "104.98.132.228" | go run main.go
-cat urls.txt | go run main.go
+echo "104.98.132.228" | certinfo
+cat urls.txt | certinfo
 ```
 
 # Output
