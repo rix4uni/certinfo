@@ -31,7 +31,7 @@ func main() {
 			InsecureSkipVerify: true,
 		})
 		if err != nil {
-			fmt.Println("Failed to connect:", err)
+			// fmt.Println("Failed to connect:", err)
 			continue
 		}
 		defer conn.Close()
