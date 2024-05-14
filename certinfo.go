@@ -8,6 +8,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -19,19 +20,24 @@ type CertificateDetails struct {
 	CertificateSubjectAlternativeName []string         `json:"Certificate_Subject_Alternative_Name"`
 }
 
-func main() {
-	scanner := bufio.NewScanner(os.Stdin)
-	port := "443"
+func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.WaitGroup) {
+	defer wg.Done()
 
-	for scanner.Scan() {
-		host := scanner.Text()
-		
-		// Connect to the host
-		conn, err := tls.Dial("tcp", net.JoinHostPort(host, port), &tls.Config{
+	for host := range jobs {
+		port := "443"
+
+		// Set up a custom dialer with timeout
+		dialer := &net.Dialer{
+			Timeout:   3 * time.Second,
+			KeepAlive: 30 * time.Second,
+		}
+
+		// Connect to the host with the custom dialer
+		conn, err := tls.DialWithDialer(dialer, "tcp", net.JoinHostPort(host, port), &tls.Config{
 			InsecureSkipVerify: true,
 		})
 		if err != nil {
-			// fmt.Println("Failed to connect:", err)
+			// fmt.Printf("Failed to connect to %s: %s\n", host, err)
 			continue
 		}
 		defer conn.Close()
@@ -39,7 +45,7 @@ func main() {
 		// Fetch the certificate
 		certs := conn.ConnectionState().PeerCertificates
 		if len(certs) == 0 {
-			fmt.Println("No certificates found.")
+			fmt.Printf("No certificates found for %s\n", host)
 			continue
 		}
 		cert := certs[0]
@@ -66,7 +72,41 @@ func main() {
 			certDetails.CertificateSubjectAlternativeName = append(certDetails.CertificateSubjectAlternativeName, name)
 		}
 
-		// Convert to JSON
+		// Send result to the results channel
+		results <- certDetails
+	}
+}
+
+func main() {
+	workers := 32
+	scanner := bufio.NewScanner(os.Stdin)
+	jobs := make(chan string, workers)
+	results := make(chan CertificateDetails)
+	var wg sync.WaitGroup
+
+	// Start workers
+	for i := 0; i < workers; i++ {
+		wg.Add(1)
+		go worker(jobs, results, &wg)
+	}
+
+	// Read input from stdin and send jobs to workers
+	go func() {
+		for scanner.Scan() {
+			host := scanner.Text()
+			jobs <- host
+		}
+		close(jobs)
+	}()
+
+	// Collect results from workers
+	go func() {
+		wg.Wait()
+		close(results)
+	}()
+
+	// Process results
+	for certDetails := range results {
 		b, err := json.MarshalIndent(certDetails, "", "  ")
 		if err != nil {
 			fmt.Println("Failed to convert to JSON:", err)
