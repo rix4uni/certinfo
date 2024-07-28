@@ -23,8 +23,13 @@ type CertificateDetails struct {
 func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.WaitGroup) {
 	defer wg.Done()
 
-	for host := range jobs {
-		port := "443"
+	for hostWithPort := range jobs {
+		// Default to port 443 if not specified
+		host, port, err := net.SplitHostPort(hostWithPort)
+		if err != nil {
+			host = hostWithPort
+			port = "443"
+		}
 
 		// Set up a custom dialer with timeout
 		dialer := &net.Dialer{
@@ -37,7 +42,7 @@ func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.Wait
 			InsecureSkipVerify: true,
 		})
 		if err != nil {
-			// fmt.Printf("Failed to connect to %s: %s\n", host, err)
+			// fmt.Printf("Failed to connect to %s: %s\n", hostWithPort, err)
 			continue
 		}
 		defer conn.Close()
@@ -45,14 +50,14 @@ func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.Wait
 		// Fetch the certificate
 		certs := conn.ConnectionState().PeerCertificates
 		if len(certs) == 0 {
-			fmt.Printf("No certificates found for %s\n", host)
+			fmt.Printf("No certificates found for %s\n", hostWithPort)
 			continue
 		}
 		cert := certs[0]
 
 		// Extract the certificate details
 		certDetails := CertificateDetails{
-			Host: host,
+			Host: hostWithPort,
 			IssuedTo: map[string]string{
 				"Common_Name_(CN)": cert.Subject.CommonName,
 				"Organization_(O)": strings.Join(cert.Subject.Organization, ","),
@@ -62,7 +67,7 @@ func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.Wait
 				"Organization_(O)": strings.Join(cert.Issuer.Organization, ","),
 			},
 			ValidityPeriod: map[string]string{
-				"Issued_On": cert.NotBefore.Format(time.RFC3339),
+				"Issued_On":  cert.NotBefore.Format(time.RFC3339),
 				"Expires_On": cert.NotAfter.Format(time.RFC3339),
 			},
 		}
