@@ -20,10 +20,24 @@ type CertificateDetails struct {
 	CertificateSubjectAlternativeName []string         `json:"Certificate_Subject_Alternative_Name"`
 }
 
+// cleanURL removes the http:// or https:// prefix from a URL.
+func cleanURL(url string) string {
+	if strings.HasPrefix(url, "http://") {
+		return strings.TrimPrefix(url, "http://")
+	}
+	if strings.HasPrefix(url, "https://") {
+		return strings.TrimPrefix(url, "https://")
+	}
+	return url
+}
+
 func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.WaitGroup) {
 	defer wg.Done()
 
 	for hostWithPort := range jobs {
+		// Clean up the URL
+		hostWithPort = cleanURL(hostWithPort)
+
 		// Default to port 443 if not specified
 		host, port, err := net.SplitHostPort(hostWithPort)
 		if err != nil {
