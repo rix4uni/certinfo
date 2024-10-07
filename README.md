@@ -1,4 +1,4 @@
-# certinfo
+## certinfo
 
 This tool finds certificate information
 
@@ -7,13 +7,13 @@ This tool finds certificate information
 go install github.com/rix4uni/certinfo@latest
 ```
 
-# Usage
+## Usage
 ```
 echo "104.98.132.228" | certinfo
 cat urls.txt | certinfo
 ```
 
-# Output
+## Output
 ```
 {
   "host": "104.98.132.228",
