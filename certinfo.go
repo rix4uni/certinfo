@@ -4,20 +4,23 @@ import (
 	"bufio"
 	"crypto/tls"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"net"
 	"os"
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/rix4uni/certinfo/banner"
 )
 
 type CertificateDetails struct {
-	Host                            string            `json:"host"`
-	IssuedTo                        map[string]string `json:"Issued_To"`
-	IssuedBy                        map[string]string `json:"Issued_By"`
-	ValidityPeriod                  map[string]string `json:"Validity_Period"`
-	CertificateSubjectAlternativeName []string         `json:"Certificate_Subject_Alternative_Name"`
+	Host                              string            `json:"host"`
+	IssuedTo                          map[string]string `json:"Issued_To"`
+	IssuedBy                          map[string]string `json:"Issued_By"`
+	ValidityPeriod                    map[string]string `json:"Validity_Period"`
+	CertificateSubjectAlternativeName []string          `json:"Certificate_Subject_Alternative_Name"`
 }
 
 // cleanURL removes the http:// or https:// prefix from a URL.
@@ -31,7 +34,7 @@ func cleanURL(url string) string {
 	return url
 }
 
-func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.WaitGroup) {
+func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.WaitGroup, verbose bool) {
 	defer wg.Done()
 
 	for hostWithPort := range jobs {
@@ -56,7 +59,9 @@ func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.Wait
 			InsecureSkipVerify: true,
 		})
 		if err != nil {
-			// fmt.Printf("Failed to connect to %s: %s\n", hostWithPort, err)
+			if verbose {
+				fmt.Printf("Failed to connect to %s: %s\n", hostWithPort, err)
+			}
 			continue
 		}
 		defer conn.Close()
@@ -64,7 +69,9 @@ func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.Wait
 		// Fetch the certificate
 		certs := conn.ConnectionState().PeerCertificates
 		if len(certs) == 0 {
-			fmt.Printf("No certificates found for %s\n", hostWithPort)
+			if verbose {
+				fmt.Printf("No certificates found for %s\n", hostWithPort)
+			}
 			continue
 		}
 		cert := certs[0]
@@ -97,16 +104,33 @@ func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.Wait
 }
 
 func main() {
-	workers := 32
+	// Parse flags
+	jsonOutput := flag.Bool("json", false, "output in JSON format")
+	concurrency := flag.Int("c", 50, "number of concurrent workers")
+	silent := flag.Bool("silent", false, "silent mode.")
+	versionFlag := flag.Bool("version", false, "Print the version of the tool and exit.")
+	verbose := flag.Bool("verbose", false, "enable verbose logging")
+	flag.Parse()
+
+	if *versionFlag {
+        banner.PrintBanner()
+        banner.PrintVersion()
+        return
+    }
+
+    if !*silent {
+        banner.PrintBanner()
+    }
+
 	scanner := bufio.NewScanner(os.Stdin)
-	jobs := make(chan string, workers)
+	jobs := make(chan string, *concurrency)
 	results := make(chan CertificateDetails)
 	var wg sync.WaitGroup
 
 	// Start workers
-	for i := 0; i < workers; i++ {
+	for i := 0; i < *concurrency; i++ {
 		wg.Add(1)
-		go worker(jobs, results, &wg)
+		go worker(jobs, results, &wg, *verbose)
 	}
 
 	// Read input from stdin and send jobs to workers
@@ -126,12 +150,20 @@ func main() {
 
 	// Process results
 	for certDetails := range results {
-		b, err := json.MarshalIndent(certDetails, "", "  ")
-		if err != nil {
-			fmt.Println("Failed to convert to JSON:", err)
-			continue
+		if *jsonOutput {
+			// JSON output
+			b, err := json.MarshalIndent(certDetails, "", "  ")
+			if err != nil {
+				fmt.Println("Failed to convert to JSON:", err)
+				continue
+			}
+			fmt.Println(string(b))
+		} else {
+			// Default (non-JSON) output
+			for _, name := range certDetails.CertificateSubjectAlternativeName {
+				fmt.Println(name)
+			}
 		}
-		fmt.Println(string(b))
 	}
 
 	if scanner.Err() != nil {
