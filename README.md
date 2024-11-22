@@ -9,9 +9,9 @@ go install github.com/rix4uni/certinfo@latest
 
 ## Download prebuilt binaries
 ```
-wget https://github.com/rix4uni/certinfo/releases/download/v0.0.2/certinfo-linux-amd64-0.0.2.tgz
-tar -xvzf certinfo-linux-amd64-0.0.2.tgz
-rm -rf certinfo-linux-amd64-0.0.2.tgz
+wget https://github.com/rix4uni/certinfo/releases/download/v0.0.3/certinfo-linux-amd64-0.0.3.tgz
+tar -xvzf certinfo-linux-amd64-0.0.3.tgz
+rm -rf certinfo-linux-amd64-0.0.3.tgz
 mv certinfo ~/go/bin/certinfo
 ```
 Or download [binary release](https://github.com/rix4uni/certinfo/releases) for your platform.
@@ -29,6 +29,8 @@ Usage of certinfo:
         number of concurrent workers (default 50)
   -json
         output in JSON format
+  -moniter
+        monitor the certificate details in a simple format
   -silent
         silent mode.
   -verbose
@@ -136,12 +138,8 @@ diaku.com
 careers.informatica.com
 ```
 
-IPv6
+Idea got from `https://kaeferjaeger.gay/sni-ip-ranges/google/ipv4_merged_sni.txt`
 ```
-▶ coming soon
-```
-
-CIDR
-```
-▶ coming soon
+▶ echo "207.207.12.80" | certinfo -silent -moniter
+207.207.12.80:443 [wwwmicrolb.informatica.com, trust.informatica.com, diaku.com, careers.informatica.com]
 ```

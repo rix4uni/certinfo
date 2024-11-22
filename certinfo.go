@@ -34,7 +34,7 @@ func cleanURL(url string) string {
 	return url
 }
 
-func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.WaitGroup, verbose bool) {
+func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.WaitGroup, verbose bool, moniter bool) {
 	defer wg.Done()
 
 	for hostWithPort := range jobs {
@@ -100,6 +100,12 @@ func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.Wait
 
 		// Send result to the results channel
 		results <- certDetails
+
+		// Print the certificate details
+		if moniter {
+			// Print host, port, and SAN if -moniter flag used
+			fmt.Printf("%s:%s [%s]\n", certDetails.Host, port, strings.Join(certDetails.CertificateSubjectAlternativeName, ", "))
+		}
 	}
 }
 
@@ -110,17 +116,18 @@ func main() {
 	silent := flag.Bool("silent", false, "silent mode.")
 	versionFlag := flag.Bool("version", false, "Print the version of the tool and exit.")
 	verbose := flag.Bool("verbose", false, "enable verbose logging")
+	moniter := flag.Bool("moniter", false, "monitor the certificate details in a simple format")
 	flag.Parse()
 
 	if *versionFlag {
-        banner.PrintBanner()
-        banner.PrintVersion()
-        return
-    }
+		banner.PrintBanner()
+		banner.PrintVersion()
+		return
+	}
 
-    if !*silent {
-        banner.PrintBanner()
-    }
+	if !*silent {
+		banner.PrintBanner()
+	}
 
 	scanner := bufio.NewScanner(os.Stdin)
 	jobs := make(chan string, *concurrency)
@@ -130,7 +137,7 @@ func main() {
 	// Start workers
 	for i := 0; i < *concurrency; i++ {
 		wg.Add(1)
-		go worker(jobs, results, &wg, *verbose)
+		go worker(jobs, results, &wg, *verbose, *moniter)
 	}
 
 	// Read input from stdin and send jobs to workers
@@ -158,7 +165,7 @@ func main() {
 				continue
 			}
 			fmt.Println(string(b))
-		} else {
+		} else if !*moniter {
 			// Default (non-JSON) output
 			for _, name := range certDetails.CertificateSubjectAlternativeName {
 				fmt.Println(name)
