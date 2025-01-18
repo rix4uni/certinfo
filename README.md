@@ -9,9 +9,9 @@ go install github.com/rix4uni/certinfo@latest
 
 ## Download prebuilt binaries
 ```
-wget https://github.com/rix4uni/certinfo/releases/download/v0.0.3/certinfo-linux-amd64-0.0.3.tgz
-tar -xvzf certinfo-linux-amd64-0.0.3.tgz
-rm -rf certinfo-linux-amd64-0.0.3.tgz
+wget https://github.com/rix4uni/certinfo/releases/download/v0.0.4/certinfo-linux-amd64-0.0.4.tgz
+tar -xvzf certinfo-linux-amd64-0.0.4.tgz
+rm -rf certinfo-linux-amd64-0.0.4.tgz
 mv certinfo ~/go/bin/certinfo
 ```
 Or download [binary release](https://github.com/rix4uni/certinfo/releases) for your platform.
@@ -27,12 +27,22 @@ cd certinfo; go install
 Usage of certinfo:
   -c int
         number of concurrent workers (default 50)
+  -csv
+        output in CSV format
+  -expires
+        output only the expiration date
+  -issued
+        output host, port, and certificate expiration date
   -json
         output in JSON format
-  -moniter
-        monitor the certificate details in a simple format
+  -san
+        monitor the san certificate details in a simple format
   -silent
         silent mode.
+  -timeout string
+        connection timeout duration (e.g. 5s, 10m, 1h) (default "3s")
+  -today
+        filter results to show only certificates issued today (works only with -issued flag)
   -verbose
         enable verbose logging
   -version
@@ -140,6 +150,6 @@ careers.informatica.com
 
 Idea got from `https://kaeferjaeger.gay/sni-ip-ranges/google/ipv4_merged_sni.txt`
 ```
-▶ echo "207.207.12.80" | certinfo -silent -moniter
+▶ echo "207.207.12.80" | certinfo -silent -san
 207.207.12.80:443 [wwwmicrolb.informatica.com, trust.informatica.com, diaku.com, careers.informatica.com]
 ```
