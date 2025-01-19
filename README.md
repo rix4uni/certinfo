@@ -65,81 +65,19 @@ xapi.stg.xfinity.com
 ```
 
 ## Usage Examples
-Domain
+Domain:
 ```
 ▶ echo "xapi.stg.xfinity.com" | certinfo -silent
 xapi.stg.xfinity.com
 cdn.ch2.int.business.comcast.com
 cdn.ch2.int.comcast.com
-cdn.ch2.stg.business.comcast.com
-cdn.ch2.stg.comcast.com
-cdn.int.business.comcast.com
-cdn.int.comcast.com
-cdn.pdc.int.business.comcast.com
-cdn.pdc.int.comcast.com
-cdn.pdc.stg.business.comcast.com
-cdn.pdc.stg.comcast.com
-cdn.perf.business.comcast.com
-cdn.perf.comcast.com
-cdn.stg.business.comcast.com
-cdn.stg.comcast.com
-cdn.wcdc.int.business.comcast.com
-cdn.wcdc.int.comcast.com
-cdn.wcdc.perf.business.comcast.com
-cdn.wcdc.perf.comcast.com
-cdn.wcdc.stg.business.comcast.com
-cdn.wcdc.stg.comcast.com
-compat.business.int.comcast.com
-compat.customer.int.xfinity.com
-compat.delivery.int.xfinity.com
-compat.www.int.xfinity.com
-compat.xapi.int.xfinity.com
-delivery.int.xfinity.com
-delivery.perf.xfinity.com
-delivery.stg.xfinity.com
-idm-perf.xfinity.com
-login-perf.xfinity.com
-oauth-perf.xfinity.com
-preview.api.stg.xfinity.com
-preview.www.stg.xfinity.com
-preview.xapi.stg.xfinity.com
-prodtest.business.int.comcast.com
-prodtest.customer.int.xfinity.com
-prodtest.delivery.int.xfinity.com
-prodtest.www.int.xfinity.com
-prodtest.xapi.int.xfinity.com
-prv.www.int.xfinity.com
-prv.www.stg.xfinity.com
-services.e2e.xfinity.com
-services.int.xfinity.com
-services.perf.xfinity.com
-services.qa.xfinity.com
-services.qa1.xfinity.com
-services.qa2.xfinity.com
-services.qa3.xfinity.com
-services.stg.xfinity.com
-ts43-stage-waf.ecs.xm.comcast.com
-ts43-stage.ecs.xm.comcast.com
-www.dev.xfinity.com
-www.e2e.xfinity.com
-www.int.xfinity.com
-www.perf.xfinity.com
-www.qa.xfinity.com
-www.qa1.xfinity.com
-www.qa2.xfinity.com
-www.qa3.xfinity.com
-www.stg.xfinity.com
-www.xapi.stg.xfinity.com
-xapi.e2e.xfinity.com
-xapi.int.xfinity.com
-xapi.perf.xfinity.com
-xapi.qa.xfinity.com
-xapi.qa1.xfinity.com
-xapi.qa2.xfinity.com
+...
+...
+...
 xapi.qa3.xfinity.com
 ```
 
-IPv4
+IPv4:
 ```
 ▶ echo "207.207.12.80" | certinfo -silent
 wwwmicrolb.informatica.com
@@ -148,8 +86,21 @@ diaku.com
 careers.informatica.com
 ```
 
-Idea got from `https://kaeferjaeger.gay/sni-ip-ranges/google/ipv4_merged_sni.txt`
+I got idea from `https://kaeferjaeger.gay/sni-ip-ranges/google/ipv4_merged_sni.txt`:
 ```
 ▶ echo "207.207.12.80" | certinfo -silent -san
 207.207.12.80:443 [wwwmicrolb.informatica.com, trust.informatica.com, diaku.com, careers.informatica.com]
+```
+
+Get those certificates issued today:
+```
+gungnir -r inscope_wildcards.txt | unew | certinfo -silent -issued -today
+www.www.internal.moveit.qms.grab.com:443 [2025-01-18T10:58:38Z]
+img-ru.shein.com:443 [2025-01-18T10:10:00Z]
+37081b66-60bf-4872-ac7e-f23446bd4d23.unifi-hosting.ui.com:443 [2025-01-18T10:12:41Z]
+```
+
+More:
+```
+gungnir -r inscope_wildcards.txt | unew | certinfo -silent -issued -today | awk '{print $1}' | nuclei
 ```
