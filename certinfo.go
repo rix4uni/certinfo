@@ -39,96 +39,98 @@ func cleanURL(url string) string {
 }
 
 func worker(jobs <-chan string, results chan<- CertificateDetails, wg *sync.WaitGroup, verbose bool, san bool, issued bool, expires bool, today bool, timeout time.Duration) {
-	defer wg.Done()
+    defer wg.Done()
 
-	for hostWithPort := range jobs {
-		// Clean up the URL
-		hostWithPort = cleanURL(hostWithPort)
+    for hostWithPort := range jobs {
+        // Clean up the URL
+        hostWithPort = cleanURL(hostWithPort)
 
-		// Default to port 443 if not specified
-		host, port, err := net.SplitHostPort(hostWithPort)
-		if err != nil {
-			host = hostWithPort
-			port = "443"
-		}
+        // Default to port 443 if not specified
+        host, port, err := net.SplitHostPort(hostWithPort)
+        if err != nil {
+            // Assume no port was provided
+            host = hostWithPort
+            port = "443"
+        }
+        hostWithPort = net.JoinHostPort(host, port)
 
-		// Set up a custom dialer with timeout
-		dialer := &net.Dialer{
-			Timeout:   timeout,
-			KeepAlive: 30 * time.Second,
-		}
+        // Set up a custom dialer with timeout
+        dialer := &net.Dialer{
+            Timeout:   timeout,
+            KeepAlive: 30 * time.Second,
+        }
 
-		// Connect to the host with the custom dialer
-		conn, err := tls.DialWithDialer(dialer, "tcp", net.JoinHostPort(host, port), &tls.Config{
-			InsecureSkipVerify: true,
-		})
-		if err != nil {
-			if verbose {
-				fmt.Printf("Failed to connect to %s: %s\n", hostWithPort, err)
-			}
-			continue
-		}
-		defer conn.Close()
+        // Connect to the host with the custom dialer
+        conn, err := tls.DialWithDialer(dialer, "tcp", hostWithPort, &tls.Config{
+            InsecureSkipVerify: true,
+        })
+        if err != nil {
+            if verbose {
+                fmt.Printf("Failed to connect to %s: %s\n", hostWithPort, err)
+            }
+            continue
+        }
+        defer conn.Close()
 
-		// Fetch the certificate
-		certs := conn.ConnectionState().PeerCertificates
-		if len(certs) == 0 {
-			if verbose {
-				fmt.Printf("No certificates found for %s\n", hostWithPort)
-			}
-			continue
-		}
-		cert := certs[0]
+        // Fetch the certificate
+        certs := conn.ConnectionState().PeerCertificates
+        if len(certs) == 0 {
+            if verbose {
+                fmt.Printf("No certificates found for %s\n", hostWithPort)
+            }
+            continue
+        }
+        cert := certs[0]
 
-		// Extract the certificate details
-		certDetails := CertificateDetails{
-			Host: hostWithPort,
-			IssuedTo: map[string]string{
-				"Common_Name_(CN)": cert.Subject.CommonName,
-				"Organization_(O)": strings.Join(cert.Subject.Organization, ","),
-			},
-			IssuedBy: map[string]string{
-				"Common_Name_(CN)": cert.Issuer.CommonName,
-				"Organization_(O)": strings.Join(cert.Issuer.Organization, ","),
-			},
-			ValidityPeriod: map[string]string{
-				"Issued_On":  cert.NotBefore.Format(time.RFC3339),
-				"Expires_On": cert.NotAfter.Format(time.RFC3339),
-			},
-		}
+        // Extract the certificate details
+        certDetails := CertificateDetails{
+            Host: hostWithPort,
+            IssuedTo: map[string]string{
+                "Common_Name_(CN)": cert.Subject.CommonName,
+                "Organization_(O)": strings.Join(cert.Subject.Organization, ","),
+            },
+            IssuedBy: map[string]string{
+                "Common_Name_(CN)": cert.Issuer.CommonName,
+                "Organization_(O)": strings.Join(cert.Issuer.Organization, ","),
+            },
+            ValidityPeriod: map[string]string{
+                "Issued_On":  cert.NotBefore.Format(time.RFC3339),
+                "Expires_On": cert.NotAfter.Format(time.RFC3339),
+            },
+        }
 
-		// Extract the SAN (Subject Alternative Name)
-		for _, name := range cert.DNSNames {
-			certDetails.CertificateSubjectAlternativeName = append(certDetails.CertificateSubjectAlternativeName, name)
-		}
+        // Extract the SAN (Subject Alternative Name)
+        for _, name := range cert.DNSNames {
+            certDetails.CertificateSubjectAlternativeName = append(certDetails.CertificateSubjectAlternativeName, name)
+        }
 
-		// Handle multiple flags
-		if today && issued {
-			// Match today's date with the issued date
-			todayDate := time.Now().Format("2006-01-02")
-			issuedDate := cert.NotBefore.Format("2006-01-02")
-			if todayDate == issuedDate {
-				fmt.Printf("%s:%s [%s]\n", certDetails.Host, port, certDetails.ValidityPeriod["Issued_On"])
-			}
-		} else if san && issued && expires {
-			fmt.Printf("%s:%s [%s] [%s] [%s]\n", certDetails.Host, port, certDetails.ValidityPeriod["Issued_On"], certDetails.ValidityPeriod["Expires_On"], strings.Join(certDetails.CertificateSubjectAlternativeName, ", "))
-		} else if san && issued {
-			fmt.Printf("%s:%s [%s] [%s]\n", certDetails.Host, port, certDetails.ValidityPeriod["Issued_On"], strings.Join(certDetails.CertificateSubjectAlternativeName, ", "))
-		} else if san && expires {
-			fmt.Printf("%s:%s [%s] [%s]\n", certDetails.Host, port, certDetails.ValidityPeriod["Expires_On"], strings.Join(certDetails.CertificateSubjectAlternativeName, ", "))
-		} else if issued && expires {
-			fmt.Printf("%s:%s [%s] [%s]\n", certDetails.Host, port, certDetails.ValidityPeriod["Issued_On"], certDetails.ValidityPeriod["Expires_On"])
-		} else if san {
-			fmt.Printf("%s:%s [%s]\n", certDetails.Host, port, strings.Join(certDetails.CertificateSubjectAlternativeName, ", "))
-		} else if issued {
-			fmt.Printf("%s:%s [%s]\n", certDetails.Host, port, certDetails.ValidityPeriod["Issued_On"])
-		} else if expires {
-			fmt.Printf("%s:%s [%s]\n", certDetails.Host, port, certDetails.ValidityPeriod["Expires_On"])
-		} else {
-			// Send result to the results channel
-			results <- certDetails
-		}
-	}
+        // Handle multiple flags
+        if today && issued {
+            // Match today's date with the issued date
+            todayDate := time.Now().Format("2006-01-02")
+            issuedDate := cert.NotBefore.Format("2006-01-02")
+            if todayDate == issuedDate {
+                fmt.Printf("%s [%s]\n", certDetails.Host, certDetails.ValidityPeriod["Issued_On"])
+            }
+        } else if san && issued && expires {
+            fmt.Printf("%s [%s] [%s] [%s]\n", certDetails.Host, certDetails.ValidityPeriod["Issued_On"], certDetails.ValidityPeriod["Expires_On"], strings.Join(certDetails.CertificateSubjectAlternativeName, ", "))
+        } else if san && issued {
+            fmt.Printf("%s [%s] [%s]\n", certDetails.Host, certDetails.ValidityPeriod["Issued_On"], strings.Join(certDetails.CertificateSubjectAlternativeName, ", "))
+        } else if san && expires {
+            fmt.Printf("%s [%s] [%s]\n", certDetails.Host, certDetails.ValidityPeriod["Expires_On"], strings.Join(certDetails.CertificateSubjectAlternativeName, ", "))
+        } else if issued && expires {
+            fmt.Printf("%s [%s] [%s]\n", certDetails.Host, certDetails.ValidityPeriod["Issued_On"], certDetails.ValidityPeriod["Expires_On"])
+        } else if san {
+            fmt.Printf("%s [%s]\n", certDetails.Host, strings.Join(certDetails.CertificateSubjectAlternativeName, ", "))
+        } else if issued {
+            fmt.Printf("%s [%s]\n", certDetails.Host, certDetails.ValidityPeriod["Issued_On"])
+        } else if expires {
+            fmt.Printf("%s [%s]\n", certDetails.Host, certDetails.ValidityPeriod["Expires_On"])
+        } else {
+            // Send result to the results channel
+            results <- certDetails
+        }
+    }
 }
 
 func main() {
