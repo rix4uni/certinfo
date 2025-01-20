@@ -9,9 +9,9 @@ go install github.com/rix4uni/certinfo@latest
 
 ## Download prebuilt binaries
 ```
-wget https://github.com/rix4uni/certinfo/releases/download/v0.0.4/certinfo-linux-amd64-0.0.4.tgz
-tar -xvzf certinfo-linux-amd64-0.0.4.tgz
-rm -rf certinfo-linux-amd64-0.0.4.tgz
+wget https://github.com/rix4uni/certinfo/releases/download/v0.0.5/certinfo-linux-amd64-0.0.5.tgz
+tar -xvzf certinfo-linux-amd64-0.0.5.tgz
+rm -rf certinfo-linux-amd64-0.0.5.tgz
 mv certinfo ~/go/bin/certinfo
 ```
 Or download [binary release](https://github.com/rix4uni/certinfo/releases) for your platform.
