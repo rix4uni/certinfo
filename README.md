@@ -1,6 +1,6 @@
 ## certinfo
 
-Scrape domain names from Certificate Subject Alternative Name
+Scrape domain names from SSL certificates of arbitrary hosts
 
 ## Installation
 ```
