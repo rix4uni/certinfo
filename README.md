@@ -74,7 +74,7 @@ Usage of certinfo:
   -silent
         silent mode.
   -timeout string
-        connection timeout duration (e.g. 5s, 10m, 1h) (default "3s")
+        connection timeout duration (e.g. 5s, 10m, 1h) (default "15s")
   -today
         filter results to show only certificates issued today (works only with -issued flag)
   -verbose
